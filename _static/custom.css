@@ -1,1 +1,9 @@
-/* This file intentionally left blank. */
+.sidebar-logo {
+    max-width: 120px;
+    margin: 0 auto;
+}
+
+.sidebar-brand-text {
+    font-size: 1.5rem;
+    margin-top: 0.8rem;
+} 
