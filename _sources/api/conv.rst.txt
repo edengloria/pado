@@ -1,0 +1,15 @@
+Convolution
+===========
+
+.. currentmodule:: pado.conv
+
+.. automodule:: pado.conv
+   :no-index:
+   :no-members:
+
+.. autoclass:: Convolution
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+   :no-index: 

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pado.complex &#8212; pado 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pado.complex</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">savemat</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span>
+
+<div class="viewcode-block" id="Complex">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Complex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Complex number class for wave optics simulation.</span>
+<span class="sd">    </span>
+<span class="sd">    This class provides methods for handling complex numbers and visualization.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        real (torch.Tensor): Real part of the complex number</span>
+<span class="sd">        imag (torch.Tensor): Imaginary part of the complex number</span>
+<span class="sd">        </span>
+<span class="sd">    The class supports the following operations:</span>
+<span class="sd">    </span>
+<span class="sd">    1. Basic arithmetic operations</span>
+<span class="sd">    2. Visualization methods</span>
+<span class="sd">       - plot_real(): Plot real part</span>
+<span class="sd">       - plot_imag(): Plot imaginary part</span>
+<span class="sd">       - plot_phase(): Plot phase</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="Complex.__init__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">real</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">imag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ang</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">native</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Tensor of complex numbers. We support three types of complex-number modes, which are all interchangeable.</span>
+
+<span class="sd">        1. Rect</span>
+
+<span class="sd">            In rect mode, we define the complex number x with real and imaginary parts as:</span>
+
+<span class="sd">                x = real + imag * 1j</span>
+
+<span class="sd">        2. Polar</span>
+
+<span class="sd">            In polar mode, we define the complex number x with magnitude and angle as:</span>
+
+<span class="sd">                x = mag * exp(1j * ang)</span>
+
+<span class="sd">        3. Native PyTorch</span>
+
+<span class="sd">            PyTorch recently started supporting complex numbers. We support using the native complex number in PyTorch:</span>
+
+<span class="sd">                x = complex</span>
+
+<span class="sd">        You should select only one mode out of the three options and provide the required components.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            real: [batch_size, # of channels, row, column] tensor of real values. </span>
+<span class="sd">                Example: x = real + 1j * imag</span>
+
+<span class="sd">            imag: [batch_size, # of channels, row, column] tensor of imaginary values. </span>
+<span class="sd">                Example: x = real + 1j * imag</span>
+
+<span class="sd">            mag: [batch_size, # of channels, row, column] tensor of magnitude values. </span>
+<span class="sd">                Example: x = mag * exp(1j * ang)</span>
+
+<span class="sd">            ang: [batch_size, # of channels, row, column] tensor of angle values. </span>
+<span class="sd">                Example: x = mag * exp(1j * ang)</span>
+
+<span class="sd">            native: [batch_size, # of channels, row, column] tensor of native complex values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">real</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">imag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ang</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">native</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">mag</span><span class="p">,</span> <span class="n">ang</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;polar&#39;</span>
+
+        <span class="k">elif</span> <span class="n">real</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">imag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ang</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">native</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">real</span><span class="p">,</span> <span class="n">imag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;rect&#39;</span>
+        <span class="k">elif</span> <span class="n">real</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">imag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mag</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ang</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">native</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">native</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;native&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;it should be either polar, rect, or native&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_vis">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_vis">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_vis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">amin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the colorized complex values in numpy based on amplitude and phase. </span>
+<span class="sd">        Args:</span>
+<span class="sd">            amin: minimum amplitude to visualize</span>
+<span class="sd">            amax: maximum amplitude to visualize</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            vis: numpy-based rgb visualization of the complex tensor </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">amp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">phase</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ang</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">vis_complex</span><span class="p">(</span><span class="n">amp</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">phase</span><span class="p">),</span> <span class="n">amin</span><span class="p">,</span> <span class="n">amax</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="Complex.dim">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.dim">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dimension of the tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dim</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_mag">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_mag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_mag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the magnitude of the complex tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            mag: magnitude in the polar representation of the complex number </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_ang">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_ang">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_ang</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the angle of the complex tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ang: angle in the polar representation of the complex number</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_real">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_real">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_real</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the real part of the complex tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            real: real part in the rect representation of the complex number</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">real</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_imag">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_imag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the imaginary part of the complex tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            imag: imaginary part in the rect representation of the complex number</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">imag</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.get_native">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_native">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_native</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the native complex number of pytorch</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            native</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_native</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span></div>
+
+
+
+<div class="viewcode-block" id="Complex.set_mag">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.set_mag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_mag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mag</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the magnitude of the complex tensor</span>
+<span class="sd">        Args:</span>
+<span class="sd">            mag: magnitude in the polar representation of the complex number </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="n">mag</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">mag</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ang</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="n">mag</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.set_ang">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.set_ang">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_ang</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ang</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the angle of the complex tensor</span>
+<span class="sd">        Args:</span>
+<span class="sd">            ang: angle in the polar representation of the complex number </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">ang</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">ang</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">ang</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.set_real">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.set_real">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_real</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">real</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the real part of the complex tensor</span>
+<span class="sd">        Args:</span>
+<span class="sd">            real: real part in the rect representation of the complex number </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">real</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">real</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">real</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_imag</span><span class="p">()</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.set_imag">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.set_imag">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_imag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">imag</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the imaginary part of the complex tensor</span>
+<span class="sd">        Args:</span>
+<span class="sd">            imag: imaginary part in the rect representation of the complex number </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">imag</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">imag</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_real</span><span class="p">()</span> <span class="o">+</span> <span class="n">imag</span><span class="o">*</span><span class="mi">1</span><span class="n">j</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.to_rect">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.to_rect">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_rect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the current mode to rect </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">polar2rect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">imag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;rect&#39;</span></div>
+
+
+<div class="viewcode-block" id="Complex.to_polar">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.to_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the current mode to polar </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">rect2polar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;polar&#39;</span></div>
+
+
+<div class="viewcode-block" id="Complex.to_native">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.to_native">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_native</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change the current mode to native </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">+</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;native&#39;</span></div>
+
+
+<div class="viewcode-block" id="Complex.shape">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.shape">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the shape of the complex tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.size">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the size of the complex tensor  </span>
+<span class="sd">        Args:</span>
+<span class="sd">            dim: size of a specific dimension or the entire dimension</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">shape</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Complex.pad_zero">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.pad_zero">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pad_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pad zeros to the complex tensor by pad_Width</span>
+<span class="sd">        Args:</span>
+<span class="sd">            pad_width: (tuple) pad width of the tensor following torch functional pad </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">,</span> <span class="n">pad_width</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.crop">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.crop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">crop_width</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Crop the complex tensor by crop_width</span>
+<span class="sd">        Args:</span>
+<span class="sd">            crop_width: (tuple) crop width of the tensor following torch functional pad </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">return</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">crop_width</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="o">-</span><span class="n">crop_width</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="Complex.__getitem__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__getitem__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        indexing the complex tensor with key</span>
+<span class="sd">        Args:</span>
+<span class="sd">            key: index to the complex number</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            complex number: complex number to return</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">mag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">ang</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">imag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">native</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.reshape">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.reshape">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reshape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reshape the complex tensor </span>
+<span class="sd">        Args:</span>
+<span class="sd">            new_shape: shape </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.resize">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.resize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">interp_method</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resize the complex tensor</span>
+<span class="sd">        Args:</span>
+<span class="sd">            scale_factor: scale factor for the interpolation</span>
+<span class="sd">            interp_method: interpolation method used in torch.nn.functional.interpolate &#39;bilinear&#39;, &#39;nearest&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">,</span>
+                                                  <span class="n">mode</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">,</span>
+                                              <span class="n">mode</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">,</span>
+                                                  <span class="n">mode</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">,</span>
+                                              <span class="n">mode</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="n">scale_factor</span><span class="p">,</span>
+                                                <span class="n">mode</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.cat">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.cat">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenate another complex tensor to the current complex tensor </span>
+<span class="sd">        Args:</span>
+<span class="sd">            other: another complex tensor to be concatenated</span>
+<span class="sd">            dim: dimension to concatenate</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">mag</span><span class="p">),</span> <span class="n">dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ang</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">ang</span><span class="p">),</span> <span class="n">dim</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">real</span><span class="p">),</span> <span class="n">dim</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">imag</span><span class="p">),</span> <span class="n">dim</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;native&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_native</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">native</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">native</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">native</span><span class="p">),</span> <span class="n">dim</span><span class="p">)</span>
+ 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Mode should be either &quot;rect&quot;, &quot;native&quot;, &quot;polar&quot;&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Complex.__matmul__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__matmul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__matmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Matrix multiplication of the current complex tensor with another one</span>
+<span class="sd">        Args:</span>
+<span class="sd">            other: another complex tensor to be matrix-multiplied</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># this is the matrix multiplication </span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="nd">@other</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="nd">@other</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span>
+                       <span class="n">imag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="nd">@other</span><span class="o">.</span><span class="n">imag</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="nd">@other</span><span class="o">.</span><span class="n">real</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Complex.__mul__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        element-wise multiplication of the current complex tensor with another one</span>
+<span class="sd">        Args:</span>
+<span class="sd">            other: another complex tensor to be multiplied</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span>
+                       <span class="n">imag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">imag</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">real</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Complex.__add__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__add__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        element-wise addition of the current complex tensor with another one</span>
+<span class="sd">        Args:</span>
+<span class="sd">            other: another complex tensor to be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">real</span><span class="p">,</span>
+                       <span class="n">imag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>   </div>
+
+
+<div class="viewcode-block" id="Complex.__truediv__">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.__truediv__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        element-wise division of the current complex tensor with another one</span>
+<span class="sd">        Args:</span>
+<span class="sd">            other: another complex tensor to be added</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">denominator</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span><span class="o">/</span><span class="n">denominator</span>
+        <span class="n">imag</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">*</span><span class="n">other</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span><span class="o">/</span><span class="n">denominator</span>
+        <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="n">real</span><span class="p">,</span>
+                       <span class="n">imag</span><span class="o">=</span><span class="n">imag</span><span class="p">)</span>             </div>
+
+
+<div class="viewcode-block" id="Complex.get_intensity">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.get_intensity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_intensity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        intensity of the current tensor based on its polar coordinate </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span><span class="o">.</span><span class="n">get_real</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Complex.conj">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.conj">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conj</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        complex conjugate of the tensor</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Complex.visualize">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.visualize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">visualize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Visualize the complex tensor </span>
+<span class="sd">        Args:</span>
+<span class="sd">            b: batch index to visualize default is 0</span>
+<span class="sd">            c: channel index to visualize. default is 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;polar&#39;</span><span class="p">:</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mag</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;magnitude, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;angle, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
+            <span class="n">vis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_vis</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">vis</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">vis</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;complex, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rect&#39;</span><span class="p">:</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">131</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;real, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">132</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;imag, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">133</span><span class="p">)</span>
+            <span class="n">vis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_vis</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">vis</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ang</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">vis</span><span class="p">[</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;complex, b</span><span class="si">%d</span><span class="s1">, c</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">))</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Complex.save">
+<a class="viewcode-back" href="../../api/complex.html#pado.complex.Complex.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        save the complex tensor as a file </span>
+<span class="sd">        Args:</span>
+<span class="sd">            fn: filename to save. the format should be either &quot;npy&quot; or &quot;mat&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">amp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="n">phase</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ang</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">fn</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;npy&#39;</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">phase</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">fn</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span> <span class="s1">&#39;mat&#39;</span><span class="p">:</span>
+            <span class="n">savemat</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;amplitude&#39;</span><span class="p">:</span><span class="n">amp</span><span class="p">,</span> <span class="s1">&#39;phase&#39;</span><span class="p">:</span><span class="n">phase</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;extension in </span><span class="si">%s</span><span class="s1"> is unknown&#39;</span><span class="o">%</span><span class="n">fn</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;light saved to </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">fn</span><span class="p">)</span></div>
+</div>
+
+
+<span class="c1"># colormap of a complex value</span>
+<span class="n">cmap_path</span> <span class="o">=</span> <span class="s1">&#39;./pado/cmap_phase.txt&#39;</span>
+<span class="n">cmap_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">cmap_path</span><span class="p">)</span>  
+<span class="n">cmap_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">cmap_p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">cmap_phase</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">ListedColormap</span><span class="p">(</span><span class="n">cmap_p</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;phase&#39;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">vis_complex</span><span class="p">(</span><span class="n">arr_c</span><span class="p">,</span> <span class="n">amin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    visualize the complex tensor in numpy based on amplitude and phase. </span>
+<span class="sd">    Args:</span>
+<span class="sd">        amin: minimum amplitude to visualize</span>
+<span class="sd">        amax: maximum amplitude to visualize</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        vis: numpy-based rgb visualization of the complex tensor </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># arr_c: complex array</span>
+    <span class="n">amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">arr_c</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">amin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">amin</span> <span class="o">=</span> <span class="n">amp</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">amax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">amax</span> <span class="o">=</span> <span class="n">amp</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">amp_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">amp</span> <span class="o">-</span> <span class="n">amin</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">amax</span> <span class="o">-</span> <span class="n">amin</span><span class="p">)</span>
+    <span class="n">amp_n</span><span class="p">[</span><span class="n">amp_n</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">amp_n</span><span class="p">[</span><span class="n">amp_n</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">arr_c</span><span class="p">)</span>
+    <span class="n">phase_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">phase</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cmap_a</span><span class="p">[(</span><span class="n">amp_n</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">cmap_p</span><span class="p">[(</span><span class="n">phase_n</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="p">:]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">polar2rect</span><span class="p">(</span><span class="n">mag</span><span class="p">,</span> <span class="n">ang</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    convert polar representation to the rect representation </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mag: magnitude of the complex tensor</span>
+<span class="sd">        ang: angle of the complex tensor</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        real: real part of the complex tensor</span>
+<span class="sd">        imag: imaginary part of the complex tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">mag</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ang</span><span class="p">)</span>
+    <span class="n">imag</span> <span class="o">=</span> <span class="n">mag</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ang</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">real</span><span class="p">,</span> <span class="n">imag</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rect2polar</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    convert rect representation to the polar representation </span>
+<span class="sd">    Args:</span>
+<span class="sd">        real: real part of the complex tensor</span>
+<span class="sd">        imag: imaginary part of the complex tensor</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        mag: magnitude of the complex tensor</span>
+<span class="sd">        ang: angle of the complex tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">mag_sq</span> <span class="o">=</span> <span class="p">(</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">real2</span> <span class="o">=</span> <span class="n">real</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">imag2</span> <span class="o">=</span> <span class="n">imag</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+    <span class="c1"># we need this to prevent nan error of the gradient value for the backpropagation when mag_sq becomes zero</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">mag_sq</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tiny</span>
+    <span class="n">real2</span><span class="p">[</span><span class="n">mag_sq</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">*</span><span class="n">eps</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span><span class="o">*</span><span class="n">eps</span>
+    <span class="n">imag2</span><span class="p">[</span><span class="n">mag_sq</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">*</span><span class="n">eps</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span><span class="o">*</span><span class="n">eps</span>
+
+    <span class="n">mag</span> <span class="o">=</span> <span class="p">(</span><span class="n">real2</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">imag2</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">ang</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">imag2</span><span class="p">,</span> <span class="n">real2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mag</span><span class="p">,</span> <span class="n">ang</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span><span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">),</span><span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">([</span><span class="n">a</span><span class="p">],</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="n">a</span><span class="p">,</span><span class="n">imag</span><span class="o">=</span><span class="n">b</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">to_polar</span><span class="p">()</span>
+        <span class="c1"># c_mag = c.get_mag()</span>
+        <span class="n">c_mag</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">c</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span><span class="o">.</span><span class="n">get_real</span><span class="p">()</span>
+
+        <span class="c1"># c_mag = torch.sqrt((a+1e-10)**2 + (b+1e-10)**2)</span>
+        <span class="c1"># ang = torch.atan2(b, a)</span>
+
+        <span class="c1"># c_mag = c.get_real()</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_mag</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pado</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html#creating-light">Creating Light</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html#using-optical-elements">Using Optical Elements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html#simulating-propagation">Simulating Propagation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html#visualizing-results">Visualizing Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Seung-Hwan Baek, Yujin Jeon, Dong-ha Shin.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

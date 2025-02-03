@@ -1,0 +1,15 @@
+Light
+=====
+
+.. currentmodule:: pado.light
+
+.. automodule:: pado.light
+   :no-index:
+   :no-members:
+
+.. autoclass:: Light
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+   :no-index: 

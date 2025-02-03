@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pado.conv &#8212; pado 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pado.conv</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.fourier</span><span class="w"> </span><span class="kn">import</span> <span class="n">fft</span><span class="p">,</span> <span class="n">ifft</span>
+
+<div class="viewcode-block" id="conv_fft">
+<a class="viewcode-back" href="../../api/pado.html#pado.conv.conv_fft">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conv_fft</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the convolution of an image with a convolution kernel using FFT</span>
+<span class="sd">    Args:</span>
+<span class="sd">        a: [B,Ch,R,C] input as Complex</span>
+<span class="sd">        b: [B,Ch,R,C] convolution kernel as Complex</span>
+<span class="sd">        pad_width: (tensor) pad width for the last spatial dimensions. should be (0,0,0,0) for circular convolution. for linear convolution, pad zero by the size of the original image</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        im_conv: [B,Ch,R,C] convolved Complex</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">a_fft</span> <span class="o">=</span> <span class="n">fft</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="n">pad_width</span><span class="p">)</span>
+    <span class="n">b_fft</span> <span class="o">=</span> <span class="n">fft</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="n">pad_width</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ifft</span><span class="p">(</span><span class="n">a_fft</span> <span class="o">*</span> <span class="n">b_fft</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="n">pad_width</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="conv_fft_img_psf">
+<a class="viewcode-back" href="../../api/pado.html#pado.conv.conv_fft_img_psf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">conv_fft_img_psf</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">psf</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the convolution of an image with a PSF (Point Spread Function) using FFT</span>
+<span class="sd">    Args:</span>
+<span class="sd">        img: [B, Ch, R, C] image tensor</span>
+<span class="sd">        psf: [pB, 1, pR, pC] PSF tensor that is desired to be convolved with the image</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        im_conv: [B, Ch, R, C] convolved image</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">Ch</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">pB</span><span class="p">,</span> <span class="n">pCh</span><span class="p">,</span> <span class="n">pR</span><span class="p">,</span> <span class="n">pC</span> <span class="o">=</span> <span class="n">psf</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">pB</span><span class="p">,</span> <span class="n">pCh</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Ch</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">psf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">psf</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Ch</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pR</span><span class="p">,</span> <span class="n">pC</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">C</span><span class="p">):</span>
+        <span class="n">w1</span> <span class="o">=</span> <span class="p">(</span><span class="n">R</span> <span class="o">-</span> <span class="n">pR</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="n">R</span> <span class="o">-</span> <span class="n">pR</span> <span class="o">-</span> <span class="n">w1</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="n">pC</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="n">C</span> <span class="o">-</span> <span class="n">pC</span> <span class="o">-</span> <span class="n">h1</span>
+        <span class="n">psf</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">psf</span><span class="p">,</span> <span class="p">(</span><span class="n">h1</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">w2</span><span class="p">))</span>
+        
+    <span class="n">i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">img</span><span class="p">))</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">psf</span><span class="p">))</span>
+    
+    <span class="n">im_conv</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="n">p</span><span class="p">)))</span>
+    
+    <span class="k">return</span> <span class="n">im_conv</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pado</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">pado</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Seung-Hwan Baek, Yujin Jeon, Dong-ha Shin.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,15 @@
+Fourier
+=======
+
+.. currentmodule:: pado.fourier
+
+.. automodule:: pado.fourier
+   :no-index:
+   :no-members:
+
+.. autoclass:: Fourier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+   :no-index: 

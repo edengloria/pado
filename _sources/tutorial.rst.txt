@@ -1,0 +1,52 @@
+Tutorial
+========
+
+Basic Usage
+==========
+
+First, import Pado and required packages::
+
+    import pado
+    import torch
+    import matplotlib.pyplot as plt
+
+Creating Light
+=============
+
+Define light wave parameters::
+
+    R = 1000  # number of rows
+    C = 1000  # number of columns 
+    pitch = 2e-6  # pixel pitch in meters
+    wvl = 660e-9  # wavelength in meters
+
+Create a light wave::
+
+    light = pado.Light(R, C, pitch, wvl, device='cuda:0')
+
+Using Optical Elements
+====================
+
+Create an aperture::
+
+    aperture = pado.OpticalElement.Aperture(
+        R, C, pitch,
+        aperture_diameter=1e-3,  
+        aperture_shape='circle',
+        wvl=wvl
+    )
+
+Simulating Propagation
+====================
+
+Create a propagator and simulate::
+
+    prop = pado.Propagator('Fresnel')
+    light_prop = prop.forward(light, z=0.1)  # Propagate 10cm
+
+Visualizing Results
+=================
+
+Visualize the light field::
+
+    light_prop.visualize() 

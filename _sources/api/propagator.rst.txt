@@ -1,0 +1,15 @@
+Propagator
+==========
+
+.. currentmodule:: pado.propagator
+
+.. automodule:: pado.propagator
+   :no-index:
+   :no-members:
+
+.. autoclass:: Propagator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+   :no-index: 

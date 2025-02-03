@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pado.fourier &#8212; pado 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pado.fourier</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.complex</span><span class="w"> </span><span class="kn">import</span> <span class="n">Complex</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+
+<div class="viewcode-block" id="fft">
+<a class="viewcode-back" href="../../api/pado.html#pado.fourier.fft">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fft</span><span class="p">(</span><span class="n">arr_c</span><span class="p">,</span> <span class="n">normalized</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">padval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Fast Fourier transform of a complex tensor </span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] complex tensor </span>
+<span class="sd">        normalized: Normalize the FFT output. default: False</span>
+<span class="sd">        pad_width: (tensor) pad width for the last spatial dimensions. </span>
+<span class="sd">        shift: flag for shifting the input data to make the zero-frequency located at the center of the arrc</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        arr_c_fft: [B,Ch,R,C] FFT of the input complex tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">arr_c</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">mag</span><span class="o">=</span><span class="n">arr_c</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">ang</span><span class="o">=</span><span class="n">arr_c</span><span class="o">.</span><span class="n">get_ang</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">pad_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">padval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">arr_c</span><span class="o">.</span><span class="n">pad_zero</span><span class="p">(</span><span class="n">pad_width</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;zero padding is only implemented for now&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="n">arr_c_shifted</span> <span class="o">=</span> <span class="n">ifftshift</span><span class="p">(</span><span class="n">arr_c</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr_c_shifted</span> <span class="o">=</span> <span class="n">arr_c</span>
+    <span class="n">arr_c_shifted</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+
+    <span class="c1">#arr_c_shifted_stack = arr_c_shifted.get_stack()</span>
+    <span class="k">if</span> <span class="n">normalized</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="s2">&quot;backward&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="s2">&quot;forward&quot;</span>
+    <span class="n">arr_c_shifted_fft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">arr_c_shifted</span><span class="o">.</span><span class="n">get_native</span><span class="p">()</span> <span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">normalized</span><span class="p">)</span>
+    <span class="n">arr_c_shifted_fft_c</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="n">arr_c_shifted_fft</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="o">=</span><span class="n">arr_c_shifted_fft</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="n">arr_c_fft</span> <span class="o">=</span> <span class="n">fftshift</span><span class="p">(</span><span class="n">arr_c_shifted_fft_c</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr_c_fft</span> <span class="o">=</span> <span class="n">arr_c_shifted_fft_c</span>
+
+    <span class="k">return</span> <span class="n">arr_c_fft</span></div>
+
+
+
+
+<div class="viewcode-block" id="ifft">
+<a class="viewcode-back" href="../../api/pado.html#pado.fourier.ifft">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ifft</span><span class="p">(</span><span class="n">arr_c</span><span class="p">,</span> <span class="n">normalized</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">pad_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the inverse Fast Fourier transform of a complex tensor </span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] complex tensor </span>
+<span class="sd">        normalized: Normalize the FFT output. default: False</span>
+<span class="sd">        pad_width: (tensor) pad width for the last spatial dimensions. </span>
+<span class="sd">        shift: flag for inversely shifting the input data </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        arr_c_fft: [B,Ch,R,C] inverse FFT of the input complex tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">arr_c</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">mag</span><span class="o">=</span><span class="n">arr_c</span><span class="o">.</span><span class="n">get_mag</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">ang</span><span class="o">=</span><span class="n">arr_c</span><span class="o">.</span><span class="n">get_ang</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="n">arr_c_shifted</span> <span class="o">=</span> <span class="n">ifftshift</span><span class="p">(</span><span class="n">arr_c</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr_c_shifted</span> <span class="o">=</span> <span class="n">arr_c</span>
+
+    <span class="n">arr_c_shifted</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">normalized</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="s2">&quot;backward&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="s2">&quot;forward&quot;</span>
+    <span class="n">arr_c_shifted_fft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">arr_c_shifted</span><span class="o">.</span><span class="n">get_native</span><span class="p">(),</span> <span class="n">norm</span><span class="o">=</span><span class="n">normalized</span><span class="p">)</span>
+    <span class="n">arr_c_shifted_fft_c</span> <span class="o">=</span> <span class="n">Complex</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="n">arr_c_shifted_fft</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="o">=</span><span class="n">arr_c_shifted_fft</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="n">arr_c_fft</span> <span class="o">=</span> <span class="n">fftshift</span><span class="p">(</span><span class="n">arr_c_shifted_fft_c</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">arr_c_fft</span> <span class="o">=</span> <span class="n">arr_c_shifted_fft_c</span>
+    
+    <span class="k">if</span> <span class="n">pad_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">arr_c_fft</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span><span class="n">pad_width</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">arr_c_fft</span></div>
+
+
+<div class="viewcode-block" id="fftshift">
+<a class="viewcode-back" href="../../api/pado.html#pado.fourier.fftshift">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fftshift</span><span class="p">(</span><span class="n">arr_c</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Shift the complex tensor so that the  zero-frequency signal located at the center of the input</span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] complex tensor </span>
+<span class="sd">        invert: flag for inversely shifting the input data </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] shifted tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">arr_c</span><span class="o">.</span><span class="n">to_rect</span><span class="p">()</span>
+    <span class="n">shift_adjust</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">invert</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="n">arr_c_shape</span> <span class="o">=</span> <span class="n">arr_c</span><span class="o">.</span><span class="n">shape</span><span class="p">()</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">arr_c_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">arr_c_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">shift_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">C</span> <span class="o">+</span> <span class="n">shift_adjust</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">arr_c</span> <span class="o">=</span> <span class="n">arr_c</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">shift_len</span><span class="p">:]</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">arr_c</span><span class="p">[</span><span class="o">...</span><span class="p">,:</span><span class="n">shift_len</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">shift_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">R</span> <span class="o">+</span> <span class="n">shift_adjust</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">arr_c</span> <span class="o">=</span> <span class="n">arr_c</span><span class="p">[</span><span class="o">...</span><span class="p">,</span><span class="n">shift_len</span><span class="p">:,:]</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">arr_c</span><span class="p">[</span><span class="o">...</span><span class="p">,:</span><span class="n">shift_len</span><span class="p">,:],</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">arr_c</span></div>
+
+
+
+<div class="viewcode-block" id="ifftshift">
+<a class="viewcode-back" href="../../api/pado.html#pado.fourier.ifftshift">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ifftshift</span><span class="p">(</span><span class="n">arr_c</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Inversely shift the complex tensor </span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] complex tensor </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        arr_c: [B,Ch,R,C] shifted tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">fftshift</span><span class="p">(</span><span class="n">arr_c</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pado</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">pado</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Seung-Hwan Baek, Yujin Jeon, Dong-ha Shin.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

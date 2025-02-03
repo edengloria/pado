@@ -1,0 +1,15 @@
+OpticalElement
+=============
+
+.. currentmodule:: pado.optical_element
+
+.. automodule:: pado.optical_element
+   :no-index:
+   :no-members:
+
+.. autoclass:: OpticalElement
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+   :no-index: 

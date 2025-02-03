@@ -1,0 +1,70 @@
+.. pado documentation master file, created by
+   sphinx-quickstart on Mon Feb  3 18:12:32 2025.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+
+Welcome to Pado's documentation!
+============================================
+
+
+Pado is a differentiable wave-optics library written in PyTorch. It allows differentiable light-wave simulation and can be integrated into any PyTorch-based network system.
+
+Key Features
+------------------------------------------------------------------
+
+- Differentiable wave optics simulation using PyTorch
+- High-level abstractions for light-wave simulation
+- Easy integration with PyTorch-based networks
+- Useful for research in learning-based computational imaging and display
+
+Main Components
+------------------------------------------------------------------
+
+Pado provides three main objects for light-wave simulation:
+
+- **Light**: Represents light waves with complex fields
+- **Optical Element**: Models optical components like lenses and apertures  
+- **Propagator**: Simulates light propagation through space
+
+Installation
+------------------------------------------------------------------
+
+Prerequisites:
+
+- Python 3.7+
+- PyTorch 
+- NumPy
+- Matplotlib
+- SciPy
+
+Getting Started
+------------------------------------------------------------------
+
+Check out our :doc:`tutorial` for a quick introduction to using Pado.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   tutorial
+   api/modules
+
+Citation
+------------------------------------------------------------------
+
+If you use Pado in your research, please cite::
+
+    @misc{Pado,
+       Author = {Seung-Hwan Baek, Yujin Jeon, Dong-ha Shin},
+       Year = {2023},
+       Note = {https://github.com/shwbaek/pado},
+       Title = {Pado: Differentiable Light-wave Simulation}
+    }
+
+Indices and tables
+------------------------------------------------------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

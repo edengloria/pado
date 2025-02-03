@@ -1,0 +1,69 @@
+pado package
+============
+
+Submodules
+----------
+
+pado.complex module
+-------------------
+
+.. automodule:: pado.complex
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.conv module
+----------------
+
+.. automodule:: pado.conv
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.fourier module
+-------------------
+
+.. automodule:: pado.fourier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.light module
+-----------------
+
+.. automodule:: pado.light
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.material module
+--------------------
+
+.. automodule:: pado.material
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.optical\_element module
+----------------------------
+
+.. automodule:: pado.optical_element
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pado.propagator module
+----------------------
+
+.. automodule:: pado.propagator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: pado
+   :members:
+   :undoc-members:
+   :show-inheritance:
